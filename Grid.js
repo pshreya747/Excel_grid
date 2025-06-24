@@ -27,14 +27,21 @@ export class Grid {
     const container = document.getElementById('container');
     const spacer = document.getElementById('spacer');
 
-    this.canvas.width = (this.viewportCols + this.headerSize) * this.cellWidth;
-    this.canvas.height = (this.viewportRows + this.headerSize) * this.cellHeight;
+   // Calculate visible canvas size
+this.viewportCols = Math.ceil(window.innerWidth / this.cellWidth);
+this.viewportRows = Math.ceil(window.innerHeight / this.cellHeight);
 
-    spacer.style.width = `${(this.cols + this.headerSize) * this.cellWidth}px`;
-    spacer.style.height = `${(this.rows + this.headerSize) * this.cellHeight}px`;
+// Set visible canvas size
+this.canvas.width = this.viewportCols * this.cellWidth;
+this.canvas.height = this.viewportRows * this.cellHeight;
 
-    container.scrollLeft = 0;
-    container.scrollTop = 0;
+// Set full scrollable area size
+spacer.style.width = `${this.cols * this.cellWidth}px`;
+spacer.style.height = `${this.rows * this.cellHeight}px`;
+
+// Reset scroll
+container.scrollTop = 0;
+container.scrollLeft = 0;
 
     container.addEventListener('scroll', (e) => {
       this.scrollX = e.target.scrollLeft;

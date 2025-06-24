@@ -2,40 +2,47 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Excel Grid</title>
   <style>
-    html, body {
+    * {
       margin: 0;
       padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
       height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: sans-serif;
     }
 
     #container {
+      position: relative;
       width: 100vw;
       height: 100vh;
-      overflow: scroll;
-      position: relative;
+      overflow: auto;
     }
 
     #spacer {
-  position: absolute;
-  width: 50000px; 
-  height: 1250000px; 
-  pointer-events: none;
-}
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
     canvas {
       position: absolute;
-      left: 0;
       top: 0;
+      left: 0;
       image-rendering: pixelated;
     }
   </style>
 </head>
 <body>
   <div id="container">
-     <div id="spacer"></div>
     <canvas id="excelCanvas"></canvas>
+    <div id="spacer"></div>
   </div>
 
   <script type="module" src="./main.js"></script>
