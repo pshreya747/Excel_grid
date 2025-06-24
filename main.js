@@ -2,7 +2,7 @@ import { generateData } from './dataGenerator.js';
 import { Grid } from './Grid.js';
 
 window.onload = () => {
-  const data = generateData(50000); // Generate 50,000 entries
+  const data = generateData(50000, 500); // Generate 50,000 entries
   const canvas = document.getElementById('excelCanvas');
   const grid = new Grid(canvas, data);
 
