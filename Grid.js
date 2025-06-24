@@ -1,3 +1,4 @@
+// Grid.js
 import { Selection } from './Selection.js';
 import { Command, CommandManager } from './Command.js';
 
@@ -9,9 +10,7 @@ export class Grid {
 
     this.cellWidth = 100;
     this.cellHeight = 25;
-
-    this.headerSize = 1; // Reserve 1 row and 1 column for headers
-
+    this.headerSize = 1; 
     this.cols = Object.keys(data[0]).length;
     this.rows = data.length;
 
@@ -19,29 +18,23 @@ export class Grid {
     this.commandManager = new CommandManager();
 
     this.viewportCols = Math.ceil(window.innerWidth / this.cellWidth);
-    this.viewportRows = 500; // Fixed to show up to 500 rows
+    this.viewportRows = Math.ceil(window.innerHeight / this.cellHeight);
 
     this.scrollX = 0;
     this.scrollY = 0;
 
     const container = document.getElementById('container');
     const spacer = document.getElementById('spacer');
+    this.input = document.getElementById('cellInput');
 
-   // Calculate visible canvas size
-this.viewportCols = Math.ceil(window.innerWidth / this.cellWidth);
-this.viewportRows = Math.ceil(window.innerHeight / this.cellHeight);
+    // Set canvas and spacer dimensions
+    this.canvas.width = (this.viewportCols + 1) * this.cellWidth;
+    this.canvas.height = (this.viewportRows + 1) * this.cellHeight;
+    spacer.style.width = `${(this.cols + 1) * this.cellWidth}px`;
+    spacer.style.height = `${(this.rows + 1) * this.cellHeight}px`;
 
-// Set visible canvas size
-this.canvas.width = this.viewportCols * this.cellWidth;
-this.canvas.height = this.viewportRows * this.cellHeight;
-
-// Set full scrollable area size
-spacer.style.width = `${this.cols * this.cellWidth}px`;
-spacer.style.height = `${this.rows * this.cellHeight}px`;
-
-// Reset scroll
-container.scrollTop = 0;
-container.scrollLeft = 0;
+    container.scrollTop = 0;
+    container.scrollLeft = 0;
 
     container.addEventListener('scroll', (e) => {
       this.scrollX = e.target.scrollLeft;
@@ -50,10 +43,45 @@ container.scrollLeft = 0;
       this.render();
     });
 
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left + this.scrollX;
+      const y = e.clientY - rect.top + this.scrollY;
+      this.handleMouseDown(x, y);
+    });
+
+  canvas.addEventListener('dblclick', (e) => {
+  e.preventDefault(); 
+
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  const col = Math.floor((x + this.scrollX) / this.cellWidth) - 1;
+  const row = Math.floor((y + this.scrollY) / this.cellHeight) - 1;
+
+  if (col >= 0 && col < this.cols && row >= 0 && row < this.rows) {
+    this.selection.selectCell(row, col);
+    this.showInput(row, col);
+  }
+});
+
+
+    this.input.addEventListener('blur', () => this.saveInput());
+
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        this.undo();
+      } else if (e.ctrlKey && e.key === 'y') {
+        e.preventDefault();
+        this.redo();
+      }
+    });
+
     this.render();
   }
 
-  // Convert col index to Excel-like label (A, B, ..., Z, AA, AB, etc.)
   columnLabel(colIndex) {
     let label = '';
     while (colIndex >= 0) {
@@ -72,14 +100,14 @@ container.scrollLeft = 0;
     ctx.font = '12px Arial';
     ctx.fillStyle = '#000';
 
-    const startRow = Math.floor(scrollY / cellHeight);
-    const endRow = startRow + this.viewportRows;
-    const startCol = Math.floor(scrollX / cellWidth);
-    const endCol = startCol + this.viewportCols;
+    const startRow = Math.max(0, Math.floor(scrollY / cellHeight) - 1);
+    const endRow = Math.min(this.rows, startRow + this.viewportRows + 2);
+    const startCol = Math.max(0, Math.floor(scrollX / cellWidth) - 1);
+    const endCol = Math.min(this.cols, startCol + this.viewportCols + 2);
 
-    // Column headers
-    for (let c = startCol; c < endCol && c < this.cols; c++) {
-      const x = (c - startCol + this.headerSize) * cellWidth;
+    // Draw column headers (A, B, C...)
+    for (let c = startCol; c < endCol; c++) {
+      const x = (c - startCol + 1) * cellWidth;
       ctx.fillStyle = '#f0f0f0';
       ctx.fillRect(x, 0, cellWidth, cellHeight);
       ctx.strokeRect(x, 0, cellWidth, cellHeight);
@@ -87,9 +115,9 @@ container.scrollLeft = 0;
       ctx.fillText(this.columnLabel(c), x + 5, 15);
     }
 
-    // Row headers
-    for (let r = startRow; r < endRow && r < this.rows; r++) {
-      const y = (r - startRow + this.headerSize) * cellHeight;
+    // Draw row headers (1, 2, 3...)
+    for (let r = startRow; r < endRow; r++) {
+      const y = (r - startRow + 1) * cellHeight;
       ctx.fillStyle = '#f0f0f0';
       ctx.fillRect(0, y, cellWidth, cellHeight);
       ctx.strokeRect(0, y, cellWidth, cellHeight);
@@ -97,11 +125,11 @@ container.scrollLeft = 0;
       ctx.fillText(r + 1, 5, y + 15);
     }
 
-    // Data cells
-    for (let r = startRow; r < endRow && r < this.rows; r++) {
-      for (let c = startCol; c < endCol && c < this.cols; c++) {
-        const x = (c - startCol + this.headerSize) * cellWidth;
-        const y = (r - startRow + this.headerSize) * cellHeight;
+    // Draw cells
+    for (let r = startRow; r < endRow; r++) {
+      for (let c = startCol; c < endCol; c++) {
+        const x = (c - startCol + 1) * cellWidth;
+        const y = (r - startRow + 1) * cellHeight;
 
         ctx.strokeRect(x, y, cellWidth, cellHeight);
         const val = this.getValue(r, c);
@@ -118,11 +146,13 @@ container.scrollLeft = 0;
   }
 
   getValue(row, col) {
+    if (row >= this.rows || col >= this.cols || row < 0 || col < 0) return '';
     const keys = Object.keys(this.data[row]);
     return this.data[row][keys[col]];
   }
 
   setValue(row, col, value) {
+    if (row >= this.rows || col >= this.cols || row < 0 || col < 0) return;
     const key = Object.keys(this.data[row])[col];
     const oldValue = this.data[row][key];
 
@@ -145,28 +175,50 @@ container.scrollLeft = 0;
   }
 
   handleMouseDown(x, y) {
-    // Adjust for header row/col
-    const col = Math.floor((x - this.cellWidth) / this.cellWidth) + Math.floor(this.scrollX / this.cellWidth);
-    const row = Math.floor((y - this.cellHeight) / this.cellHeight) + Math.floor(this.scrollY / this.cellHeight);
+  const col = Math.floor((x + this.scrollX) / this.cellWidth) - 1;
+  const row = Math.floor((y + this.scrollY) / this.cellHeight) - 1;
 
-    if (row >= 0 && col >= 0) {
-      this.selection.selectCell(row, col);
-      this.render();
-      const stats = this.selection.getStats((r, c) => this.getValue(r, c));
-      console.log('Stats:', stats);
-    }
+  if (col >= 0 && col < this.cols && row >= 0 && row < this.rows) {
+    this.selection.selectCell(row, col);
+    this.input.style.display = 'none';
+    this.render();
+  }
+}
+
+handleDoubleClick(x, y) {
+  const col = Math.floor((x + this.scrollX) / this.cellWidth) - 1;
+  const row = Math.floor((y + this.scrollY) / this.cellHeight) - 1;
+
+  if (col >= 0 && col < this.cols && row >= 0 && row < this.rows) {
+    this.selection.selectCell(row, col);
+    this.showInput(row, col);
+  }
+}
+
+  showInput(row, col) {
+    const x = (col + 1) * this.cellWidth;
+    const y = (row + 1) * this.cellHeight;
+
+    const value = this.getValue(row, col);
+
+    this.input.style.left = `${x - this.scrollX}px`;
+    this.input.style.top = `${y - this.scrollY}px`;
+    this.input.style.width = `${this.cellWidth - 2}px`;
+    this.input.style.height = `${this.cellHeight - 2}px`;
+    this.input.value = value;
+    this.input.style.display = 'block';
+    this.input.focus();
+
+    this.inputRow = row;
+    this.inputCol = col;
   }
 
-  handleDoubleClick(x, y) {
-    const col = Math.floor((x - this.cellWidth) / this.cellWidth) + Math.floor(this.scrollX / this.cellWidth);
-    const row = Math.floor((y - this.cellHeight) / this.cellHeight) + Math.floor(this.scrollY / this.cellHeight);
-
-    if (row >= 0 && col >= 0) {
-      const newValue = prompt('Enter new value:', this.getValue(row, col));
-      if (newValue !== null) {
-        this.setValue(row, col, isNaN(newValue) ? newValue : parseFloat(newValue));
-      }
+  saveInput() {
+    if (this.inputRow !== undefined && this.inputCol !== undefined) {
+      const newValue = this.input.value;
+      this.setValue(this.inputRow, this.inputCol, newValue);
     }
+    this.input.style.display = 'none';
   }
 
   undo() {

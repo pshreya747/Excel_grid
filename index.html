@@ -14,35 +14,46 @@
     html, body {
       height: 100%;
       width: 100%;
-    
       font-family: sans-serif;
+      overflow: hidden;
     }
 
     #container {
       position: relative;
       width: 100vw;
       height: 100vh;
-      overflow: auto;
+      overflow: scroll;
     }
 
     #spacer {
-      position: absolute;
-      top: 0;
-      left: 0;
+      width: 50000px; 
+      height: 1200000px;
     }
 
     canvas {
       position: absolute;
       top: 0;
       left: 0;
-      image-rendering: pixelated;
+      z-index: 1;
+    }
+
+    #cellInput {
+      position: absolute;
+      display: none;
+      z-index: 10;
+      font-size: 14px;
+      padding: 2px;
+      border: 1px solid #0078d7;
+      outline: none;
+      font-family: monospace;
     }
   </style>
 </head>
 <body>
   <div id="container">
-    <canvas id="excelCanvas"></canvas>
     <div id="spacer"></div>
+    <canvas id="excelCanvas"></canvas>
+    <input type="text" id="cellInput" />
   </div>
 
   <script type="module" src="./main.js"></script>
